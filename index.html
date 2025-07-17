@@ -179,10 +179,12 @@ function update() {
     dog.velocityY += gravity;
     dog.y += dog.velocityY;
   } else {
+      if (dog.velocityY >= 0) {
     dog.y = canvas.height - dog.height - 20;
     dog.jumping = false;
     dog.velocityY = 0;
   }
+}
 
   drawDog();
   drawObstacles();
