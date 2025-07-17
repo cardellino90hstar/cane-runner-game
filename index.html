@@ -1,0 +1,186 @@
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Cane Runner 2.0</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #d0f4f7;
+    }
+    canvas {
+      display: block;
+      background: #87ceeb;
+    }
+  </style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = 300;
+
+// Assets
+const dogImg = new Image();
+dogImg.src = 'https://i.ibb.co/nMCF3TV/cane-pixel.png'; // Placeholder immagine cane (può essere sostituita)
+
+const jumpSound = new Audio('https://actions.google.com/sounds/v1/human_voices/human_grunt.ogg');
+const bgMusic = new Audio('https://cdn.pixabay.com/audio/2023/03/28/audio_0c45b37f7e.mp3');
+bgMusic.loop = true;
+bgMusic.volume = 0.3;
+bgMusic.play();
+
+// Variabili
+let dog = {
+  x: 50,
+  y: canvas.height - 80,
+  width: 60,
+  height: 60,
+  velocityY: 0,
+  jumping: false,
+  lives: 3
+};
+
+let gravity = 1.5;
+let obstacles = [];
+let bullets = [];
+let frame = 0;
+let score = 0;
+let gameOver = false;
+
+// Ostacoli
+function spawnObstacle() {
+  obstacles.push({
+    x: canvas.width,
+    y: canvas.height - 60,
+    width: 40,
+    height: 40,
+    speed: 6,
+    color: '#555'
+  });
+}
+
+// Cane
+function drawDog() {
+  ctx.drawImage(dogImg, dog.x, dog.y, dog.width, dog.height);
+}
+
+// Ostacoli
+function drawObstacles() {
+  obstacles.forEach(ob => {
+    ctx.fillStyle = ob.color;
+    ctx.fillRect(ob.x, ob.y, ob.width, ob.height);
+    ob.x -= ob.speed;
+  });
+  obstacles = obstacles.filter(ob => ob.x + ob.width > 0);
+}
+
+// Proiettili
+function drawBullets() {
+  ctx.fillStyle = 'orange';
+  bullets.forEach(b => {
+    ctx.fillRect(b.x, b.y, b.width, b.height);
+    b.x += b.speed;
+  });
+  bullets = bullets.filter(b => b.x < canvas.width);
+}
+
+// Collisioni
+function handleCollisions() {
+  obstacles.forEach((ob, i) => {
+    // Collisione cane-ostacolo
+    if (
+      dog.x < ob.x + ob.width &&
+      dog.x + dog.width > ob.x &&
+      dog.y < ob.y + ob.height &&
+      dog.y + dog.height > ob.y
+    ) {
+      obstacles.splice(i, 1);
+      dog.lives -= 1;
+      if (dog.lives <= 0) {
+        gameOver = true;
+      }
+    }
+
+    // Collisione proiettile-ostacolo
+    bullets.forEach((b, j) => {
+      if (b.x < ob.x + ob.width && b.x + b.width > ob.x &&
+          b.y < ob.y + ob.height && b.y + b.height > ob.y) {
+        obstacles.splice(i, 1);
+        bullets.splice(j, 1);
+        score += 10;
+      }
+    });
+  });
+}
+
+// Disegna info gioco
+function drawHUD() {
+  ctx.fillStyle = '#000';
+  ctx.font = '20px Arial';
+  ctx.fillText('Score: ' + Math.floor(score), 10, 30);
+  ctx.fillText('Vite: ' + dog.lives, 10, 60);
+}
+
+// Loop
+function update() {
+  if (gameOver) {
+    ctx.fillStyle = 'red';
+    ctx.font = '40px Arial';
+    ctx.fillText('GAME OVER', canvas.width/2 - 120, canvas.height/2);
+    return;
+  }
+
+  frame++;
+  score += 0.1;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Gravity
+  if (dog.y < canvas.height - dog.height - 20) {
+    dog.velocityY += gravity;
+    dog.y += dog.velocityY;
+  } else {
+    dog.y = canvas.height - dog.height - 20;
+    dog.jumping = false;
+    dog.velocityY = 0;
+  }
+
+  drawDog();
+  drawObstacles();
+  drawBullets();
+  handleCollisions();
+  drawHUD();
+
+  if (frame % 90 === 0) spawnObstacle();
+
+  requestAnimationFrame(update);
+}
+
+// Controlli
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' && !dog.jumping) {
+    dog.velocityY = -20;
+    dog.jumping = true;
+    jumpSound.play();
+  }
+  if (e.code === 'KeyZ') {
+    bullets.push({
+      x: dog.x + dog.width,
+      y: dog.y + dog.height / 2,
+      width: 10,
+      height: 5,
+      speed: 10
+    });
+  }
+});
+
+update();
+</script>
+</body>
+</html>
